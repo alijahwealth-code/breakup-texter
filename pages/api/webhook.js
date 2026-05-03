@@ -5,16 +5,21 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN,
 });
 
-const SELLER_ID         = 'zGJfFujYeY_DbmB08d1CAA==';
-const PRODUCT_PERMALINK = 'plpvmb';
-const ONE_YEAR_SECS     = 365 * 24 * 60 * 60;
+const SELLER_ID = 'zGJfFujYeY_DbmB08d1CAA==';
+
+const PRODUCTS = new Set([
+  'plpvmb',   // Breakup Texter
+  'ypeazl',   // Is This a Scam?
+]);
+
+const ONE_YEAR_SECS = 365 * 24 * 60 * 60;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { seller_id, sale_id, product_permalink, refunded, chargedback, test } = req.body || {};
 
-  if (seller_id !== SELLER_ID || product_permalink !== PRODUCT_PERMALINK) {
+  if (seller_id !== SELLER_ID || !PRODUCTS.has(product_permalink)) {
     return res.status(200).json({ ignored: true });
   }
 
