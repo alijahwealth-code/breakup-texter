@@ -6,13 +6,12 @@ const redis = new Redis({
 });
 
 const SELLER_ID = 'zGJfFujYeY_DbmB08d1CAA==';
-
 const PRODUCTS = new Set([
   'plpvmb',   // Breakup Texter
   'ypeazl',   // Is This a Scam?
   'qeeafp',   // Roast My Resume
+  'xesgo',    // Red Flag Rater
 ]);
-
 const ONE_YEAR_SECS = 365 * 24 * 60 * 60;
 
 module.exports = async function handler(req, res) {
