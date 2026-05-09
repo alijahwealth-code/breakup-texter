@@ -1,6 +1,4 @@
 // pages/api/generate.js
-// Claude API route — API key stays server-side, never exposed to browser
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -12,14 +10,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const nameStr = theirName ? `Their name is ${theirName}.` : 'No name provided — write without using a name.';
-  const contextStr = context ? `Extra context: ${context}` : '';
+  const nameStr    = theirName ? `Their name is ${theirName}.` : 'No name provided — write without using a name.';
+  const contextStr = context   ? `Extra context: ${context}`   : '';
 
   const toneGuide = {
-    gentle:  'Warm and empathetic. Leave them feeling respected. Close the door kindly but unmistakably.',
-    brutal:  'Blunt, direct, no softening. Short. Not mean — just completely done.',
-    funny:   'Self-aware and a little absurd. Light, not cruel. The kind of breakup text people screenshot and post.',
-    ghost:   'Sophisticated fade. Dignified, minimal, final. No drama. Just... done.',
+    gentle: 'Warm and empathetic. Leave them feeling respected. Close the door kindly but unmistakably.',
+    brutal: 'Blunt, direct, no softening. Short. Not mean — just completely done.',
+    funny:  'Self-aware and a little absurd. Light, not cruel. The kind of breakup text people screenshot and post.',
+    ghost:  'Sophisticated fade. Dignified, minimal, final. No drama. Just... done.',
   };
 
   const prompt = `You are a breakup text ghostwriter. Write ONE breakup text message.
@@ -30,26 +28,27 @@ Relationship details:
 - ${nameStr}
 - ${contextStr}
 
-Tone to use: ${tone.toUpperCase()} — ${toneGuide[tone] || toneGuide.gentle}
+Tone: ${tone.toUpperCase()} — ${toneGuide[tone] || toneGuide.gentle}
 
 RULES:
-- Write ONLY the text message itself. No intro, no label, no quotes. Just the message.
-- Sound exactly like a real person texting — not a letter, not formal
+- Write ONLY the message itself. No intro, no label, no quotes around it.
+- Sound like a real person texting — not formal, not a letter
 - Max 3–4 sentences for gentle/funny/ghost; 1–2 sentences for brutal
-- Make it feel real and specific, not generic
-- No clichés like "I wish you well" or "you deserve someone better"
-- It should feel like something people would screenshot and share`;
+- Make it feel real and specific, never generic
+- No clichés like "I wish you well" or "you deserve better"
+- Write something people would actually screenshot`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://breakuptexter.vercel.app',
+        'X-Title': 'Breakup Texter',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'anthropic/claude-haiku-4-5',
         max_tokens: 300,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -57,12 +56,12 @@ RULES:
 
     if (!response.ok) {
       const err = await response.text();
-      console.error('Anthropic API error:', err);
-      return res.status(500).json({ error: 'AI generation failed. Check your API key.' });
+      console.error('OpenRouter error:', err);
+      return res.status(500).json({ error: 'AI generation failed. Try again.' });
     }
 
     const data = await response.json();
-    const message = data.content?.[0]?.text?.trim();
+    const message = data.choices?.[0]?.message?.content?.trim();
 
     if (!message) {
       return res.status(500).json({ error: 'Empty response from AI.' });
