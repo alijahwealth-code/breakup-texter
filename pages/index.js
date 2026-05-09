@@ -7,8 +7,10 @@ export default function Home() {
   const [length, setLength] = useState('1-6 months');
   const [theirName, setTheirName] = useState('');
   const [context, setContext] = useState('');
-  const [message, setMessage] = useState('');
-  const [screen, setScreen] = useState('form'); // form | locked | unlocked
+  const [preview, setPreview] = useState('');
+  const [messageId, setMessageId] = useState('');
+  const [fullMessage, setFullMessage] = useState('');
+  const [screen, setScreen] = useState('form');
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState('');
   const [orderId, setOrderId] = useState('');
@@ -29,8 +31,8 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-      if (!data.message) throw new Error('Empty response — try again.');
-      setMessage(data.message);
+      setPreview(data.preview);
+      setMessageId(data.messageId);
       setScreen('locked');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
@@ -48,10 +50,11 @@ export default function Home() {
       const res = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ saleId: orderId.trim() }),
+        body: JSON.stringify({ saleId: orderId.trim(), messageId }),
       });
       const data = await res.json();
       if (!res.ok || !data.valid) throw new Error(data.error || 'Order ID not found. Check your Gumroad receipt.');
+      setFullMessage(data.message);
       setScreen('unlocked');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
@@ -62,29 +65,30 @@ export default function Home() {
   };
 
   const reset = () => {
-    setMessage(''); setScreen('form'); setOrderId('');
+    setPreview(''); setMessageId(''); setFullMessage('');
+    setScreen('form'); setOrderId('');
     setGenError(''); setUnlockError(''); setCopied(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const copy = () => {
-    navigator.clipboard.writeText(message).then(() => {
+    navigator.clipboard.writeText(fullMessage).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
   const vibes = [
-    { val: 'casual', emoji: '😎', label: 'Casual thing' },
-    { val: 'serious', emoji: '💍', label: 'Serious / official' },
-    { val: 'complicated', emoji: '🌀', label: "It's complicated" },
-    { val: 'toxic', emoji: '☠️', label: 'Toxic situation' },
+    { val: 'casual', emoji: '\u{1F60E}', label: 'Casual thing' },
+    { val: 'serious', emoji: '\u{1F48D}', label: 'Serious / official' },
+    { val: 'complicated', emoji: '\u{1F300}', label: "It's complicated" },
+    { val: 'toxic', emoji: '\u{2620}\uFE0F', label: 'Toxic situation' },
   ];
   const tones = [
-    { val: 'gentle', emoji: '💙', label: 'Gentle', sub: 'Kind but clear' },
-    { val: 'brutal', emoji: '🗡️', label: 'Brutal', sub: 'Zero sugarcoating' },
-    { val: 'funny', emoji: '😅', label: 'Funny', sub: 'Awkward but real' },
-    { val: 'ghost', emoji: '👻', label: 'Ghost Mode', sub: 'Classy disappear' },
+    { val: 'gentle', emoji: '\u{1F499}', label: 'Gentle', sub: 'Kind but clear' },
+    { val: 'brutal', emoji: '\u{1F5E1}\uFE0F', label: 'Brutal', sub: 'Zero sugarcoating' },
+    { val: 'funny', emoji: '\u{1F605}', label: 'Funny', sub: 'Awkward but real' },
+    { val: 'ghost', emoji: '\u{1F47B}', label: 'Ghost Mode', sub: 'Classy disappear' },
   ];
 
   return (
@@ -117,7 +121,7 @@ export default function Home() {
         .out-hdr{padding:16px 22px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.4);border-bottom:1px solid rgba(255,255,255,.07)}
         .bubble{background:rgba(255,107,138,.12);border:1px solid rgba(255,107,138,.2);border-radius:12px;padding:16px 18px;font-size:15px;line-height:1.6;color:rgba(255,255,255,.9);margin:16px 20px;white-space:pre-wrap}
         .blur-wrap{position:relative}
-        .blur-ov{position:absolute;inset:16px 20px;border-radius:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);background:rgba(13,0,16,.3)}
+        .blur-ov{position:absolute;inset:16px 20px;border-radius:12px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);background:rgba(13,0,16,.5)}
         .pay-gate{padding:20px 22px 24px;text-align:center;border-top:1px solid rgba(255,255,255,.07)}
         .pay-title{font-size:17px;font-weight:800;margin-bottom:4px}
         .pay-sub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:16px}
@@ -150,7 +154,6 @@ export default function Home() {
               <option>2+ years</option>
             </select>
           </div>
-
           <div className="card">
             <label className="lbl">What was the vibe?</label>
             <div className="opts">
@@ -161,7 +164,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-
           <div className="card">
             <label className="lbl">Pick a tone</label>
             <div className="opts">
@@ -173,17 +175,14 @@ export default function Home() {
               ))}
             </div>
           </div>
-
           <div className="card">
             <label className="lbl">Their name <span className="opt">(optional)</span></label>
             <input type="text" placeholder="e.g. Jordan" value={theirName} onChange={e => setTheirName(e.target.value)} />
           </div>
-
           <div className="card">
             <label className="lbl">Anything specific to include? <span className="opt">(optional)</span></label>
             <textarea placeholder="e.g. They kept canceling plans..." value={context} onChange={e => setContext(e.target.value)} />
           </div>
-
           <button className="gen-btn" onClick={generate} disabled={generating}>
             {generating ? '✍️  Writing your text...' : '✨  Generate My Breakup Text'}
           </button>
@@ -196,7 +195,7 @@ export default function Home() {
           <div className="out-card">
             <div className="out-hdr">Your Breakup Text 💔</div>
             <div className="blur-wrap">
-              <div className="bubble">{message}</div>
+              <div className="bubble">{preview}</div>
               <div className="blur-ov"></div>
             </div>
             <div className="pay-gate">
@@ -224,7 +223,7 @@ export default function Home() {
         <div className="wrap">
           <div className="out-card">
             <div className="out-hdr">Your Breakup Text 💔</div>
-            <div className="bubble" style={{margin:'16px 20px 20px'}}>{message}</div>
+            <div className="bubble" style={{margin:'16px 20px 20px'}}>{fullMessage}</div>
             <button className="action-btn" onClick={copy}>{copied ? '✅  Copied!' : '📋  Copy to clipboard'}</button>
             <button className="action-btn" onClick={reset}>↩&nbsp; Generate another</button>
             <div className="share">Screenshot &amp; post it — tag us and we might feature yours 👀</div>
